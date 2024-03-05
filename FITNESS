@@ -1,0 +1,117 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#define POPULATION_SIZE 100
+#define DNA_SIZE 30
+#define MUTATION_RATE 0.01
+#define GENERATIONS 100
+
+typedef struct {
+    char sequence[DNA_SIZE + 1];
+    double fitness;
+} DNA;
+
+void initializePopulation(DNA population[POPULATION_SIZE]) {
+    for (int i = 0; i < POPULATION_SIZE; i++) {
+        for (int j = 0; j < DNA_SIZE; j++) {
+            // Ensure at least two 'T' in the sequence
+            if (j < 2) {
+                population[i].sequence[j] = 'T';
+            } else {
+                population[i].sequence[j] = (char)('A' + rand() % 4);
+            }
+        }
+        population[i].sequence[DNA_SIZE] = '\0';
+        population[i].fitness = 0.0;
+    }
+}
+
+double calculateFitness(DNA *individual) {
+    double fitness = 0.0;
+    for (int i = 0; i < DNA_SIZE; i++) {
+        if (individual->sequence[i] == 'T') {
+            fitness += 1.0;
+        }
+    }
+    return fitness;
+}
+
+void selection(DNA population[POPULATION_SIZE]) {
+    double totalFitness = 0.0;
+
+    for (int i = 0; i < POPULATION_SIZE; i++) {
+        totalFitness += population[i].fitness;
+    }
+
+    for (int i = 0; i < POPULATION_SIZE; i++) {
+        double randVal = (double)rand() / RAND_MAX * totalFitness;
+        double sum = 0.0;
+
+        for (int j = 0; j < POPULATION_SIZE; j++) {
+            sum += population[j].fitness;
+            if (sum >= randVal) {
+                DNA temp;
+                strcpy(temp.sequence, population[j].sequence);
+                temp.fitness = population[j].fitness;
+
+                strcpy(population[j].sequence, population[i].sequence);
+                population[j].fitness = population[i].fitness;
+
+                strcpy(population[i].sequence, temp.sequence);
+                population[i].fitness = temp.fitness;
+                break;
+            }
+        }
+    }
+}
+
+void crossover(DNA population[POPULATION_SIZE]) {
+    for (int i = 0; i < POPULATION_SIZE; i += 2) {
+        int crossoverPoint = rand() % (DNA_SIZE - 1) + 1;
+
+        for (int j = crossoverPoint; j < DNA_SIZE; j++) {
+            char temp = population[i].sequence[j];
+            population[i].sequence[j] = population[i + 1].sequence[j];
+            population[i + 1].sequence[j] = temp;
+        }
+    }
+}
+
+void mutate(DNA *individual) {
+    for (int i = 0; i < DNA_SIZE; i++) {
+        if ((double)rand() / RAND_MAX < MUTATION_RATE) {
+            individual->sequence[i] = 'T';  // Mutate to 'T'
+        }
+    }
+}
+
+int main() {
+    srand(time(NULL));
+    DNA population[POPULATION_SIZE];
+
+    initializePopulation(population);
+
+    for (int generation = 0; generation < GENERATIONS; generation++) {
+        for (int i = 0; i < POPULATION_SIZE; i++) {
+            population[i].fitness = calculateFitness(&population[i]);
+        }
+
+        selection(population);
+        crossover(population);
+
+        // Apply mutation and recalculate fitness
+        for (int i = 0; i < POPULATION_SIZE; i++) {
+            mutate(&population[i]);
+            population[i].fitness = calculateFitness(&population[i]);
+        }
+    }
+
+    // Output the final population
+    for (int i = 0; i < POPULATION_SIZE; i++) {
+        printf("Individual %d: DNA Sequence = %s, Fitness = %f\n", i, population[i].sequence, population[i].fitness);
+    }
+
+    return 0;
+}
